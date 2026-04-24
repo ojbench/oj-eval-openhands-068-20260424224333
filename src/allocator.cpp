@@ -170,16 +170,16 @@ void TLSFAllocator::deallocate(void* ptr) {
 }
 
 std::size_t TLSFAllocator::getMaxAvailableBlockSize() const {
-    // rough estimate: find any set bit and return some representative size
-    for (int fi = FLI_SIZE - 1; fi >= 0; --fi) {
-        if (index.sliBitmaps[fi]) {
-            // the list head block size is an upper bound
-            for (int si = SLI_SIZE - 1; si >= 0; --si) {
-                if (index.freeLists[fi][si]) {
-                    return index.freeLists[fi][si]->size - align_up(sizeof(FreeBlock));
-                }
+    std::size_t maxsz = 0;
+    for (int fi = 0; fi < FLI_SIZE; ++fi) {
+        if (!index.sliBitmaps[fi]) continue;
+        for (int si = 0; si < SLI_SIZE; ++si) {
+            auto* b = index.freeLists[fi][si];
+            for (; b; b = b->nextFree) {
+                if (b->isFree && b->size > maxsz) maxsz = b->size;
             }
         }
     }
-    return 0;
+    if (maxsz < align_up(sizeof(FreeBlock))) return 0;
+    return maxsz - align_up(sizeof(FreeBlock));
 }
