@@ -94,15 +94,26 @@ class ACMOJClient:
         # Ensure .git suffix for compatibility
         if not git_url.endswith('.git'):
             git_url = git_url.rstrip('/') + '.git'
-        forms = [
-            (f"/problem/{problem_id}/submit", {"language": "git", "code": git_url}, False),
-            (f"/problem/{problem_id}/submit/", {"language": "git", "code": git_url}, False),
-            ("/submission", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
-            ("/submission/", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
-            ("/submission", {"language": "git", "code": git_url, "problem_id": problem_id}, True),
-            (f"/submit", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
-            (f"/submit/", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
+        common = [
+            {"language": "git", "code": git_url, "branch": "main"},
+            {"language": "git", "git_url": git_url, "branch": "main"},
+            {"language": "git", "repo_url": git_url, "branch": "main"},
+            {"language": "git", "url": git_url, "branch": "main"},
+            {"language": "git", "git": git_url, "branch": "main"},
         ]
+        forms = []
+        for payload in common:
+            forms.append((f"/problem/{problem_id}/submit", payload, False))
+            forms.append((f"/problem/{problem_id}/submit/", payload, False))
+        for payload in common:
+            p2 = dict(payload)
+            p2["problem_id"] = str(problem_id)
+            forms.append(("/submission", p2, False))
+            forms.append(("/submission/", p2, False))
+            forms.append(("/submit", p2, False))
+            forms.append(("/submit/", p2, False))
+        # JSON variant
+        forms.append(("/submission", {"language": "git", "code": git_url, "problem_id": problem_id, "branch": "main"}, True))
         result = None
         for ep, payload, json_mode in forms:
             result = self._make_request("POST", ep, data=payload, params=None, json_mode=json_mode)
