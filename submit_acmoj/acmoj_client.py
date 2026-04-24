@@ -45,13 +45,16 @@ class ACMOJClient:
         
 
     def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None, 
-                     params: Dict[str, Any] = None) -> Optional[Dict]:
+                     params: Dict[str, Any] = None, json_mode: bool = False) -> Optional[Dict]:
         url = f"{self.api_base}{endpoint}"
         try:
             if method.upper() == "GET":
                 response = requests.get(url, headers=self.headers, params=params, timeout=10, proxies={"https": None, "http": None})
             elif method.upper() == "POST":
-                response = requests.post(url, headers=self.headers, data=data, timeout=10, proxies={"https": None, "http": None})
+                if json_mode:
+                    response = requests.post(url, headers={**self.headers, "Content-Type": "application/json"}, json=data, timeout=10, proxies={"https": None, "http": None})
+                else:
+                    response = requests.post(url, headers=self.headers, data=data, timeout=10, proxies={"https": None, "http": None})
             else:
                 print(f"Unsupported HTTP method: {method}")
                 return None
@@ -102,7 +105,7 @@ class ACMOJClient:
         ]
         result = None
         for ep, payload, json_mode in forms:
-            result = self._make_request("POST", ep, data=payload, params=None)
+            result = self._make_request("POST", ep, data=payload, params=None, json_mode=json_mode)
             if result:
                 break
         if result and 'id' in result:
