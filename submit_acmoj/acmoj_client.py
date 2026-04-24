@@ -92,6 +92,9 @@ class ACMOJClient:
         # Primary endpoint
         result = self._make_request("POST", f"/problem/{problem_id}/submit", data=data)
         if not result:
+            # Try trailing slash variant
+            result = self._make_request("POST", f"/problem/{problem_id}/submit/", data=data)
+        if not result:
             # Fallback to legacy endpoint
             data_fallback = {"language": "git", "code": git_url, "problem_id": str(problem_id)}
             result = self._make_request("POST", "/submission", data=data_fallback)
