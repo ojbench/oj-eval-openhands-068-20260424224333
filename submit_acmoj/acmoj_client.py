@@ -88,16 +88,23 @@ class ACMOJClient:
             print(f"⚠️ Warning: Failed to save submission ID: {e}")
 
     def submit_git(self, problem_id: int, git_url: str) -> Optional[Dict]:
-        data = {"language": "git", "code": git_url}
-        # Primary endpoint
-        result = self._make_request("POST", f"/problem/{problem_id}/submit", data=data)
-        if not result:
-            # Try trailing slash variant
-            result = self._make_request("POST", f"/problem/{problem_id}/submit/", data=data)
-        if not result:
-            # Fallback to legacy endpoint
-            data_fallback = {"language": "git", "code": git_url, "problem_id": str(problem_id)}
-            result = self._make_request("POST", "/submission", data=data_fallback)
+        # Ensure .git suffix for compatibility
+        if not git_url.endswith('.git'):
+            git_url = git_url.rstrip('/') + '.git'
+        forms = [
+            (f"/problem/{problem_id}/submit", {"language": "git", "code": git_url}, False),
+            (f"/problem/{problem_id}/submit/", {"language": "git", "code": git_url}, False),
+            ("/submission", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
+            ("/submission/", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
+            ("/submission", {"language": "git", "code": git_url, "problem_id": problem_id}, True),
+            (f"/submit", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
+            (f"/submit/", {"language": "git", "code": git_url, "problem_id": str(problem_id)}, False),
+        ]
+        result = None
+        for ep, payload, json_mode in forms:
+            result = self._make_request("POST", ep, data=payload, params=None)
+            if result:
+                break
         if result and 'id' in result:
             self._save_submission_id(result['id'])
         return result
